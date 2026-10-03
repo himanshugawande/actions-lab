@@ -1,0 +1,51 @@
+name: Explore triggers
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [dev, staging, prod]
+        default: dev
+      dry_run:
+        description: Dry run only
+        type: boolean
+        default: true
+  schedule:
+    - cron: '17 3 * * 1'          # Mondays 03:17 UTC = 08:47 IST (off the busy :00 minute)
+  pull_request:
+    types: [opened, labeled]
+permissions:
+  contents: read
+jobs:
+  show:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: What triggered me
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Ref:   ${{ github.ref }}"
+          echo "Actor: ${{ github.actor }}"
+
+      - name: Only on manual runs
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "Target=${{ inputs.environment }} dry_run=${{ inputs.dry_run }}"
+
+      - name: Only when the PR has the run-extra label
+        if: contains(github.event.pull_request.labels.*.name, 'run-extra')
+        run: echo "Extra checks requested"
+
+      - name: Prod guard
+        if: inputs.environment == 'prod' && !inputs.dry_run
+        run: |
+          echo "Refusing a real prod run from a sandbox"
+          exit 1
+
+      - name: Alert on failure
+        if: failure()
+        run: echo "Something failed. A real workflow would notify the team here."
+
+      - name: Cleanup (always)
+        if: always()
+        run: echo "Cleanup runs no matter what"
