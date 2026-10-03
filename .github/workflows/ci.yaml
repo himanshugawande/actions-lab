@@ -1,0 +1,19 @@
+name: CI                         # name shown in the Actions tab
+on:
+  push:
+    branches: [main]             # run when commits land on main
+  pull_request:                  # run on every PR (this is the "check" on a PR)
+  workflow_dispatch:             # adds a manual "Run workflow" button
+permissions:
+  contents: read                 # least privilege for the built-in token (more in Module 7)
+jobs:
+  test:                          # job ID; later becomes the status check name
+    runs-on: ubuntu-latest
+    timeout-minutes: 10          # stop runaway jobs (the default limit is 6 hours)
+    steps:
+      - uses: actions/checkout@v5          # without this, the runner has no copy of your code
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22                 # Node LTS
+      - run: node --version
+      - run: npm test
